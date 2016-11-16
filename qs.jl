@@ -74,7 +74,7 @@ function legendre(n, p)
     return powmod(n,div(p-1,2),p)
 end
 
-function sieve(n, range_size, power_max)
+function get_smooths(n, range_size, power_max)
     base_primes=[]
     for p in primes(43)
         if legendre(n,p)==1
@@ -142,7 +142,7 @@ function sieve(n, range_size, power_max)
     end
     thredshold=floor(Int64,log2(n))
     k=lbound
-    smooths=[]
+    smooths=Array(Int64,0)
     while k<=ubound
         i=k-lbound+1
         if n_bits_q[i]<thredshold
@@ -150,27 +150,84 @@ function sieve(n, range_size, power_max)
             for (p,l) in zip(base_primes,pows[i,:])
                 prod*=p^l
             end
-            @show q[i],prod
             if prod==q[i]
                 push!(smooths,i)
             end
         end                   
         k+=1
     end
-    @show smooths
-    return ((lbound:ubound)[smooths],signs[smooths],pows[smooths,:])
+    return (lbound:ubound)[smooths],signs[smooths],pows[smooths,:]
 end
 
 function solve_eq_mod2(nums,signs,pows)
-    indices=1:len(nums)
+    indices=Array(1:length(nums))
     n=size(pows)[2]
-    v=Array(n)
+    v=Array(Int64,n)
     s=2
     for i in 1:n
-        v[2]=s
-        s*2
+        v[i]=s
+        s <<= 1
+    end
     encoded=mod(pows,2)*v+signs
+    @show mod(pows,2)
+    @show encoded
+    n_base=size(pows)[2]
+    n_pows=length(encoded)
+    mask = 1
+    for j in 1:n_base+1
+        found=false
+        for i in j:n_pows
+            x=encoded[i]
+            if x&mask !=0
+                if !found
+                    found=true
+                    encoded[i],encoded[j]=encoded[j],encoded[i]
+                    indices[i],indices[j]=indices[j],indices[i]
+                else
+                    encoded[i] $= encoded[j]$mask
+                end
+            end
+        end
+        mask <<= 1
+    end
+    @show indices
+    return indices,encoded
 end
+
+function decode_bits(n)
+    a=Array(Int64,0)
+    i=1
+    j=1
+    while n>0
+        @show n
+        if n&1==1
+            push!(a,j)
+        end
+        n >>= 1
+        i <<= 1
+        j+=1
+    end
+    return a
+end
+
+function quadratic_sieve(n)
+    m=200
+    b=5
+    nums,signs,pows = get_smooths(n, 200, 5)
+    indices, encoded = solve_eq_mod2(nums, signs, pows)
+    n_base=size(pows)[2]
+    n_pows=size(pows)[1]
+    for i in n_base+2:n_pows
+        d=decode_bits(encoded[i])
+        prod=BigInt(nums[indices[i]])
+        for j in d
+            prod *= nums[indices[j]]
+        end
+        r=isqrt(prod)
+        @assert r*r==prod
+    end
+end
+
 
 @show powmod(3,5,7)
 @show powmod(2,1000000000000000000000000000000000,11)
@@ -179,4 +236,13 @@ end
 @show sqrtmod(6,29)
 
 @show sqrtmod(1042387,17)
-@show sieve(930091,200,5)
+nums,signs,pows = get_smooths(930091,200,5)
+@show nums
+@show signs
+@show pows
+solve_eq_mod2(nums,signs,pows)
+
+@show decode_bits(15)
+@show decode_bits(10)
+
+quadratic_sieve(930091)
