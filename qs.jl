@@ -75,7 +75,7 @@ function legendre(n, p)
 end
 
 function get_smooths(n, range_size, power_max)
-    base_primes=[]
+    base_primes=Int64[]
     for p in primes(43)
         if legendre(n,p)==1
             push!(base_primes,p)
@@ -92,7 +92,7 @@ function get_smooths(n, range_size, power_max)
     signs = zeros(Int64,size)
     pows = zeros(Int64,size,n_base)
     for k in lbound:ubound
-        i=k-lbound+1
+        i=Int64(k-lbound+1)
         q[i] = k*k-n
         n_bits_q[i] = ndigits(q[i],2)
         if q[i]<0
@@ -199,7 +199,6 @@ function decode_bits(n)
     i=1
     j=1
     while n>0
-        @show n
         if n&1==1
             push!(a,j)
         end
@@ -211,31 +210,42 @@ function decode_bits(n)
 end
 
 function quadratic_sieve(n)
-    m=200
-    b=5
-    nums,signs,pows = get_smooths(n, 200, 5)
+    m=floor(Int64, exp( 3/4*sqrt(2*log(n)*log(log(n))) ) )
+    m=max(20,m)
+    b=floor(Int64, log(n)/2+log(m)-2*log(43) )
+    b=max(5,b)
+    @show m,b
+    nums,signs,pows = get_smooths(n, m, b)
     indices, encoded = solve_eq_mod2(nums, signs, pows)
     n_base=size(pows)[2]
     n_pows=size(pows)[1]
     for i in n_base+2:n_pows
         d=decode_bits(encoded[i])
-        prod=BigInt(nums[indices[i]])
+        prod1=mod(BigInt(nums[indices[i]]),n)
+        prod2=BigInt(nums[indices[i]])^2 - n
         for j in d
-            prod *= nums[indices[j]]
+            prod1 = mod(prod1*nums[indices[j]],n)
+            prod2 *= nums[indices[j]]^2 -n
         end
-        r=isqrt(prod)
-        @assert r*r==prod
+        r=isqrt(prod2)
+        @assert r*r==prod2
+        rr=mod(r,n)
+        @assert mod(rr*rr-prod1*prod1,n)==0
+        if rr!=prod1 && mod(rr+prod1,n)!=0
+            quotient=gcd(rr-prod1,n)
+            return quotient
+        end
     end
 end
 
 
-@show powmod(3,5,7)
-@show powmod(2,1000000000000000000000000000000000,11)
+@assert powmod(3,5,7) == 5
+@assert powmod(2,1000000000000000000000000000000000,11) == 1
 
-@show powmod(4,div(29-1,2),29)
-@show sqrtmod(6,29)
+@assert powmod(4,div(29-1,2),29) == 1
+@assert sqrtmod(6,29) == 8
+@assert sqrtmod(1042387,17) == 7
 
-@show sqrtmod(1042387,17)
 nums,signs,pows = get_smooths(930091,200,5)
 @show nums
 @show signs
@@ -245,4 +255,16 @@ solve_eq_mod2(nums,signs,pows)
 @show decode_bits(15)
 @show decode_bits(10)
 
-quadratic_sieve(930091)
+p=quadratic_sieve(930091)
+@show p, 930091 % p
+
+a=BigInt(12707341651684921770863912066739924799)
+b=BigInt(559213569296432442040136986819559513221)
+a=BigInt(21186486689341429849)
+b=BigInt(35205422048983390723)
+a=BigInt(8260815623)
+b=BigInt(5819365813)
+n=a*b
+@time factor(n)
+@time p=quadratic_sieve(n)
+@assert mod(n,p)==0
