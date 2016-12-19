@@ -85,14 +85,14 @@ function get_smooths(n, prime_max, range_size, power_max)
     r=isqrt(n)
     lbound=r-range_size # lower bound
     ubound=r+range_size # upper bound
+    @show lbound,ubound
     size=ubound-lbound+1
-    q = Array(Int64,size)
+    q = Array(BigInt,size)
     n_bits_q = Array(Int64,size)
     signs = zeros(Int64,size)
     pows = zeros(Int64,size,n_base)
     for k in lbound:ubound
         i=Int64(k-lbound+1)
-        @show i
         q[i] = k*k-n
         n_bits_q[i] = ndigits(q[i],2)
         if q[i]<0
@@ -102,6 +102,7 @@ function get_smooths(n, prime_max, range_size, power_max)
     end
     # sieve for 2
     k = lbound + mod(lbound-1,2)
+    @show k
     while k<=ubound
         i=k-lbound+1
         pows[i,1]=1
@@ -110,7 +111,7 @@ function get_smooths(n, prime_max, range_size, power_max)
         while mod(q[i],pp)==0
             pows[i,1]+=1
             l+=1
-            pp*=p
+            pp*=2
         end
         k+=2
     end
@@ -164,6 +165,7 @@ function solve_eq_mod2(nums,pows)
     encoded=convert( Array{Bool},mod(pows,2) )
     n_bases=size(pows)[2]
     n_nums=size(pows)[1]
+    @assert n_nums>n_bases
     for j in 1:n_bases
         found=false
         for i in j:n_nums
@@ -198,17 +200,10 @@ function decode_bits(n)
 end
 
 function quadratic_sieve(n)
-    m=floor(Int64, exp( 3/4*sqrt(2*log(n)*log(log(n))) ) )
-    m=max(20,m)
-    prime_max=200
-    b=floor(Int64, log(n)/2+log(m)-2*log(prime_max) )
-    b=max(5,b)
-    @show m,b
-    nums, pows = get_smooths(n, prime_max, 100000, b)
+    nums, pows = get_smooths(n, 100000, 12*32768, 27)
     indices, encoded = solve_eq_mod2(nums, pows)
     n_bases=size(pows)[2]
     n_nums=size(pows)[1]
-    @assert n_nums>n_bases
     for i in n_bases+1:n_nums
         prod1=mod(BigInt(nums[indices[i]]),n)
         prod2=BigInt(nums[indices[i]])^2 - n
@@ -242,14 +237,18 @@ indices,encoded = solve_eq_mod2(nums,pows)
 @show indices
 @show encoded
 
-p=quadratic_sieve(930091)
-@show p, 930091 % p
-return
+#p=quadratic_sieve(930091)
+#@show p, 930091 % p
 
-a=BigInt(12707341651684921770863912066739924799)
-b=BigInt(559213569296432442040136986819559513221)
+#a=BigInt(12707341651684921770863912066739924799)
+#b=BigInt(559213569296432442040136986819559513221)
 a=BigInt(21186486689341429849)
 b=BigInt(35205422048983390723)
+#a=big(2876665451560048679)
+#b=big(982614746229445027)
+a=big(1825552363)
+b=big(1197489743)
+
 n=a*b
 #@time factor(n)
 @time p=quadratic_sieve(n)
