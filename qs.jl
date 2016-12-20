@@ -51,7 +51,6 @@ function sqrtmod2(a::Integer,p::Integer)
     g=powmod(n,s,p)
     r=e
     m=1
-    @show x,b,g,r
     while true
         # find m s.t. b^(2^m) = 1 (mod p)
         m=0
@@ -85,7 +84,6 @@ function get_smooths(n, prime_max, range_size, power_max)
     r=isqrt(n)
     lbound=r-range_size # lower bound
     ubound=r+range_size # upper bound
-    @show lbound,ubound
     size=ubound-lbound+1
     q = Array(BigInt,size)
     n_bits_q = Array(Int64,size)
@@ -102,7 +100,6 @@ function get_smooths(n, prime_max, range_size, power_max)
     end
     # sieve for 2
     k = lbound + mod(lbound-1,2)
-    @show k
     while k<=ubound
         i=k-lbound+1
         pows[i,1]=1
@@ -230,22 +227,6 @@ end
 @assert sqrtmod(6,29) == 8
 @assert sqrtmod(1042387,17) == 7
 
-nums,pows = get_smooths(930091,43,200,5)
-@show nums
-@show pows
-indices,encoded = solve_eq_mod2(nums,pows)
-@show indices
-@show encoded
-
-#p=quadratic_sieve(930091)
-#@show p, 930091 % p
-
-#a=BigInt(12707341651684921770863912066739924799)
-#b=BigInt(559213569296432442040136986819559513221)
-a=BigInt(21186486689341429849)
-b=BigInt(35205422048983390723)
-#a=big(2876665451560048679)
-#b=big(982614746229445027)
 a=big(1825552363)
 b=big(1197489743)
 
